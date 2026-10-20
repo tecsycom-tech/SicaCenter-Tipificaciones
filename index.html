@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SicaCenter - Corrector & Repara Excel</title>
+    
+    <!-- Dynamic Favicon SVG -->
+    <link id="favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='10' y='10' width='80' height='80' rx='18' fill='%2310b981'/><path d='M25 32h50M25 50h28M25 68h35' stroke='white' stroke-width='7' stroke-linecap='round'/><circle cx='70' cy='65' r='18' fill='%232563eb'/><path d='M63 65l5 5 10-10' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- SheetJS CDN (Full build with cellStyles support) -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <!-- JSZip (para editar el .xlsx original sin reconstruirlo) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Toastify -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-full flex flex-col transition-colors duration-200">
+
+    <!-- Header / Navbar -->
+    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <!-- Specialized Header Icon (Excel + Repair Magic Wand) -->
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-blue-600 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 relative">
+                    <i class="fa-solid fa-file-excel text-lg"></i>
+                    <div class="absolute -bottom-1 -right-1 bg-amber-400 text-slate-900 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shadow-sm">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </div>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight flex items-center gap-2">
+                        SicaCenter <span class="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 text-xs px-2 py-0.5 rounded-full font-medium border border-emerald-300 dark:border-emerald-800">Corrector Preservativo</span>
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Valida Columna H conservando estilos, listas y fórmulas originales</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <!-- Theme Toggle Button -->
+                <button id="themeToggle" class="p-2 rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="Cambiar Tema">
+                    <i id="themeIcon" class="fa-solid fa-moon"></i>
+                </button>
+                <!-- Official list modal trigger -->
+                <button id="btnViewList" class="hidden sm:flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg transition">
+                    <i class="fa-solid fa-list-check text-blue-500"></i>
+                    Tipificaciones Válidas (<span id="validCountBadge">34</span>)
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Upload Section -->
+        <div id="uploadSection" class="bg-white dark:bg-slate-800 rounded-2xl p-8 border border-slate-200 dark:border-slate-700 shadow-sm text-center transition-all">
+            <div class="max-w-xl mx-auto">
+                <div class="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner border border-emerald-100 dark:border-emerald-800">
+                    <i class="fa-solid fa-file-shield"></i>
+                </div>
+                <h2 class="text-xl font-bold mb-2">Cargar archivo Excel (.xlsx / .xls)</h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                    Sube el reporte. Se procesará únicamente la hoja <strong class="text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded font-mono">SicaCenter</strong>. <br>
+                    <span class="text-emerald-600 dark:text-emerald-400 text-xs font-medium"><i class="fa-solid fa-circle-check"></i> Formatos de texto, colores, anchos de columna y fórmulas de todas las hojas se preservarán intactos.</span>
+                </p>
+
+                <!-- Dropzone -->
+                <div id="dropzone" class="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-8 hover:border-emerald-500 dark:hover:border-emerald-400 bg-slate-50/50 dark:bg-slate-800/50 transition cursor-pointer group flex flex-col items-center">
+                    <input type="file" id="excelFileInput" accept=".xlsx, .xls, .xlsm, .csv" class="hidden">
+                    <i class="fa-solid fa-cloud-arrow-up text-4xl text-slate-400 dark:text-slate-500 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition mb-3"></i>
+                    <p class="text-sm font-medium text-slate-700 dark:text-slate-300">Arrastra tu archivo Excel aquí o <span class="text-emerald-600 dark:text-emerald-400 font-semibold underline">haz clic para examinar</span></p>
+                    <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Soporta formatos .xlsx, .xls y .xlsm</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard / Results Section (Hidden by default) -->
+        <div id="dashboardSection" class="hidden space-y-6">
+
+            <!-- File Header Info & Export Action -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center space-x-3 w-full md:w-auto">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg flex-shrink-0">
+                        <i class="fa-solid fa-file-excel"></i>
+                    </div>
+                    <div class="truncate">
+                        <h3 id="fileNameDisplay" class="font-bold text-slate-800 dark:text-slate-100 truncate">archivo.xlsx</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                            <span>Hoja: <strong class="text-slate-700 dark:text-slate-300">SicaCenter</strong></span>
+                            <span>•</span>
+                            <span id="sheetRowCount">0 filas</span>
+                            <span>•</span>
+                            <span class="text-emerald-600 dark:text-emerald-400 font-medium"><i class="fa-solid fa-lock text-[10px]"></i> Formato Binario Preservado</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-3 w-full md:w-auto justify-end">
+                    <button id="btnReset" class="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg transition flex items-center gap-2">
+                        <i class="fa-solid fa-rotate-left"></i> Otro Archivo
+                    </button>
+                    <button id="btnExport" class="px-5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-md shadow-emerald-600/20 transition flex items-center gap-2">
+                        <i class="fa-solid fa-download"></i> Exportar Excel Corregido
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Overview Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center space-x-4">
+                    <div class="p-3 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-xl">
+                        <i class="fa-solid fa-list-ol"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Total Filas Evaludadas</p>
+                        <h4 id="statTotal" class="text-2xl font-bold text-slate-800 dark:text-white">0</h4>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center space-x-4">
+                    <div class="p-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl text-xl">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Tipificaciones Conformes</p>
+                        <h4 id="statValid" class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">0</h4>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center space-x-4">
+                    <div class="p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl text-xl">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">No Coincidentes x Corregir</p>
+                        <h4 id="statInvalid" class="text-2xl font-bold text-amber-600 dark:text-amber-400">0</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Buttons for Views -->
+            <div class="border-b border-slate-200 dark:border-slate-700 flex space-x-6 text-sm font-medium">
+                <button id="tabBulkBtn" class="py-2 border-b-2 border-emerald-600 text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group"></i> Reemplazo Masivo por Agrupación
+                </button>
+                <button id="tabRowsBtn" class="py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-table-list"></i> Edición Detallada Fila por Fila (<span id="rowsCountBadge">0</span>)
+                </button>
+            </div>
+
+            <!-- Tab 1: Bulk Replacement View -->
+            <div id="tabBulkView" class="space-y-4">
+                <div class="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-xl p-4 text-xs text-blue-800 dark:text-blue-300 flex items-start gap-3">
+                    <i class="fa-solid fa-circle-info text-base text-blue-600 dark:text-blue-400 mt-0.5"></i>
+                    <div>
+                        <p class="font-semibold">Reemplazo en Lote Inteligente</p>
+                        <p class="mt-0.5">Muestra exclusivamente los valores de la <strong>Columna H</strong> que NO pertenecen a la lista oficial. Al seleccionar una opción válida, se actualizarán directamente las celdas correspondientes conservando el formato visual del archivo.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 uppercase font-semibold">
+                                    <th class="py-3 px-4">Valor No Coincidente en Columna H</th>
+                                    <th class="py-3 px-4 text-center">Frecuencia / Casos</th>
+                                    <th class="py-3 px-4">Sustituir por Tipificación Oficial</th>
+                                    <th class="py-3 px-4 text-right">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bulkTableBody" class="divide-y divide-slate-200 dark:divide-slate-700 text-slate-700 dark:text-slate-300">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="bulkEmptyState" class="hidden p-8 text-center text-slate-400 dark:text-slate-500">
+                        <i class="fa-solid fa-circle-check text-4xl text-emerald-500 mb-2"></i>
+                        <p class="text-sm font-medium text-slate-700 dark:text-slate-300">¡Todo en Orden! No se encontraron valores no coincidentes.</p>
+                        <p class="text-xs mt-1">Todos los registros de la columna H en la hoja SicaCenter concuerdan con la lista estándar.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Individual Row Editing View -->
+            <div id="tabRowsView" class="hidden space-y-4">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <div class="relative w-full sm:w-72">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                        <input type="text" id="rowSearchInput" placeholder="Filtrar por fila o valor..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Listando únicamente las filas con errores de tipificación</p>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 uppercase font-semibold">
+                                    <th class="py-3 px-4 w-24 text-center">Fila Excel</th>
+                                    <th class="py-3 px-4">Valor Incorrecto (Columna H)</th>
+                                    <th class="py-3 px-4">Asignar Tipificación Oficial</th>
+                                    <th class="py-3 px-4 text-right">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rowsTableBody" class="divide-y divide-slate-200 dark:divide-slate-700 text-slate-700 dark:text-slate-300">
+                                <!-- Dynamic individual rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="rowsEmptyState" class="hidden p-8 text-center text-slate-400 dark:text-slate-500">
+                        <i class="fa-solid fa-circle-check text-4xl text-emerald-500 mb-2"></i>
+                        <p class="text-sm font-medium text-slate-700 dark:text-slate-300">No hay filas individuales pendientes de corrección.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Modal Valid Tipifications List -->
+    <div id="validListModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200 dark:border-slate-700 transform scale-95 transition-transform duration-200">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-clipboard-check text-emerald-600 dark:text-emerald-400"></i>
+                    Lista Oficial de 34 Tipificaciones
+                </h3>
+                <button id="btnCloseModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="py-4">
+                <input type="text" id="modalSearch" placeholder="Buscar tipificación..." class="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <div id="modalListContainer" class="max-h-64 overflow-y-auto space-y-1 pr-1">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+            <div class="pt-3 border-t border-slate-200 dark:border-slate-700 text-right">
+                <button id="btnCloseModalBtn" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-lg transition">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic Script -->
+    <script>
+        // Official List of Valid Tipifications
+        const VALID_TIPIFICATIONS = [
+            "Venta",
+            "Agendado",
+            "Cliente no permite brindar información",
+            "No desea-precio",
+            "No desea-producto",
+            "Cliente retenido - Precio",
+            "Cliente retenido - Velocidad",
+            "Cliente retenido - Promoción",
+            "Conforme con su operador",
+            "Corta Llamada",
+            "Cliente con deuda",
+            "Sin cobertura",
+            "Ya cuenta con servicio activo",
+            "Preventa en proceso",
+            "Cliente de baja",
+            "No contesta",
+            "Llamada Muda",
+            "Casilla de Voz",
+            "Fuera de servicio",
+            "Call cut off",
+            "No Answer",
+            "Machine",
+            "No coding",
+            "Hangup before AMD",
+            "Answer without agent",
+            "Busy",
+            "Rejected",
+            "Busy here",
+            "Chanunavail",
+            "Request Timeout",
+            "Server internal failure",
+            "Service Unavailable",
+            "Temporarily unavailable"
+        ];
+
+        // Create a fast lookup Set (trimmed and case-insensitive)
+        const validSetNormalized = new Set(VALID_TIPIFICATIONS.map(t => t.trim().toLowerCase()));
+
+        // Application State
+        let rawWorkbook = null;
+        let originalFileName = "";
+        let rawFileBuffer = null;
+        let pendingEdits = {}; // { 'H5': 'Nuevo valor' } cambios hechos por el usuario
+        let invalidRecords = []; // Array of { rowNum (1-based), cellAddress ('H10'), currentValue }
+
+        // DOM Elements
+        const dropzone = document.getElementById('dropzone');
+        const excelFileInput = document.getElementById('excelFileInput');
+        const uploadSection = document.getElementById('uploadSection');
+        const dashboardSection = document.getElementById('dashboardSection');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const sheetRowCount = document.getElementById('sheetRowCount');
+        const btnReset = document.getElementById('btnReset');
+        const btnExport = document.getElementById('btnExport');
+
+        // Stats Elements
+        const statTotal = document.getElementById('statTotal');
+        const statValid = document.getElementById('statValid');
+        const statInvalid = document.getElementById('statInvalid');
+        const rowsCountBadge = document.getElementById('rowsCountBadge');
+
+        // Navigation Tabs
+        const tabBulkBtn = document.getElementById('tabBulkBtn');
+        const tabRowsBtn = document.getElementById('tabRowsBtn');
+        const tabBulkView = document.getElementById('tabBulkView');
+        const tabRowsView = document.getElementById('tabRowsView');
+
+        // Tables
+        const bulkTableBody = document.getElementById('bulkTableBody');
+        const rowsTableBody = document.getElementById('rowsTableBody');
+        const bulkEmptyState = document.getElementById('bulkEmptyState');
+        const rowsEmptyState = document.getElementById('rowsEmptyState');
+        const rowSearchInput = document.getElementById('rowSearchInput');
+
+        // Modal Elements
+        const btnViewList = document.getElementById('btnViewList');
+        const validListModal = document.getElementById('validListModal');
+        const btnCloseModal = document.getElementById('btnCloseModal');
+        const btnCloseModalBtn = document.getElementById('btnCloseModalBtn');
+        const modalListContainer = document.getElementById('modalListContainer');
+        const modalSearch = document.getElementById('modalSearch');
+
+        // Theme Toggle
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            setupEventListeners();
+            populateModalList();
+        });
+
+        function initTheme() {
+            if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                themeIcon.className = 'fa-solid fa-sun';
+            } else {
+                document.documentElement.classList.remove('dark');
+                themeIcon.className = 'fa-solid fa-moon';
+            }
+        }
+
+        themeToggle.addEventListener('click', () => {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('color-theme', 'light');
+                themeIcon.className = 'fa-solid fa-moon';
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('color-theme', 'dark');
+                themeIcon.className = 'fa-solid fa-sun';
+            }
+        });
+
+        function setupEventListeners() {
+            dropzone.addEventListener('click', () => excelFileInput.click());
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('border-emerald-500', 'bg-emerald-50/50');
+            });
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('border-emerald-500', 'bg-emerald-50/50');
+            });
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('border-emerald-500', 'bg-emerald-50/50');
+                if (e.dataTransfer.files.length > 0) {
+                    handleFileSelect(e.dataTransfer.files[0]);
+                }
+            });
+
+            excelFileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileSelect(e.target.files[0]);
+                }
+            });
+
+            btnReset.addEventListener('click', resetApp);
+            btnExport.addEventListener('click', exportExcel);
+
+            tabBulkBtn.addEventListener('click', () => switchTab('bulk'));
+            tabRowsBtn.addEventListener('click', () => switchTab('rows'));
+
+            rowSearchInput.addEventListener('input', renderRowsTable);
+
+            btnViewList.addEventListener('click', openModal);
+            btnCloseModal.addEventListener('click', closeModal);
+            btnCloseModalBtn.addEventListener('click', closeModal);
+            modalSearch.addEventListener('input', filterModalList);
+        }
+
+        // File Parsing preserving ALL cell attributes, formulas, and formatting
+        function handleFileSelect(file) {
+            originalFileName = file.name;
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                try {
+                    rawFileBuffer = e.target.result;
+                    pendingEdits = {};
+                    // Read with full formatting flags enabled
+                    rawWorkbook = XLSX.read(new Uint8Array(rawFileBuffer), {
+                        type: 'array',
+                        cellStyles: true,
+                        cellFormulas: true,
+                        cellDates: true,
+                        cellNF: true,
+                        sheetStubs: true
+                    });
+
+                    const sheetName = "SicaCenter";
+                    if (!rawWorkbook.SheetNames.includes(sheetName)) {
+                        const foundSheets = rawWorkbook.SheetNames.map(s => `"${s}"`).join(', ');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Hoja "SicaCenter" no encontrada',
+                            html: `<p class="text-sm">El archivo cargado no contiene la hoja requerida con el nombre exacto <strong>SicaCenter</strong>.</p>
+                                   <p class="text-xs text-slate-500 mt-2">Hojas encontradas: ${foundSheets}</p>`,
+                            confirmButtonColor: '#10b981'
+                        });
+                        return;
+                    }
+
+                    parseSicaCenterSheet();
+                    showToast('Archivo y estructura cargados correctamente', 'success');
+
+                } catch (err) {
+                    console.error(err);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error al abrir archivo',
+                        text: 'No se pudo leer el archivo Excel. Asegúrate de que no esté corrupto o protegido con contraseña.',
+                        confirmButtonColor: '#10b981'
+                    });
+                }
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Parse Sheet directly from cell structure to preserve formatting
+        function parseSicaCenterSheet() {
+            invalidRecords = [];
+            const ws = rawWorkbook.Sheets["SicaCenter"];
+            
+            if (!ws || !ws['!ref']) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Hoja Vacía',
+                    text: 'La hoja SicaCenter no posee rango de datos válido.',
+                    confirmButtonColor: '#10b981'
+                });
+                return;
+            }
+
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            let totalEvaluated = 0;
+            let validCount = 0;
+
+            // Iterate over all rows starting from row 2 (index range.s.r + 1 to skip header row 1)
+            for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                // Column H is column index 7 (A=0, B=1, C=2, D=3, E=4, F=5, G=6, H=7)
+                const cellAddress = XLSX.utils.encode_cell({ r: R, c: 7 });
+                const cell = ws[cellAddress];
+
+                // Extract cell value
+                let cellVal = "";
+                if (cell && cell.v !== undefined && cell.v !== null) {
+                    cellVal = String(cell.v).trim();
+                }
+
+                // Check if row has data in at least one cell to avoid analyzing trailing empty rows
+                let rowHasData = false;
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const checkCell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+                    if (checkCell && checkCell.v !== undefined && checkCell.v !== null && String(checkCell.v).trim() !== "") {
+                        rowHasData = true;
+                        break;
+                    }
+                }
+
+                if (!rowHasData) continue; // Skip totally blank rows
+
+                totalEvaluated++;
+
+                const normalizedVal = cellVal.toLowerCase();
+                if (validSetNormalized.has(normalizedVal)) {
+                    validCount++;
+                } else {
+                    invalidRecords.push({
+                        rowNum: R + 1, // 1-based row index for UI display
+                        cellAddress: cellAddress,
+                        currentValue: cellVal
+                    });
+                }
+            }
+
+            // Update UI Counters
+            fileNameDisplay.textContent = originalFileName;
+            sheetRowCount.textContent = `${range.e.r + 1} filas en hoja`;
+            statTotal.textContent = totalEvaluated;
+            statValid.textContent = validCount;
+            statInvalid.textContent = invalidRecords.length;
+            rowsCountBadge.textContent = invalidRecords.length;
+
+            renderBulkTable();
+            renderRowsTable();
+
+            uploadSection.classList.add('hidden');
+            dashboardSection.classList.remove('hidden');
+            btnViewList.classList.remove('hidden');
+        }
+
+        // Render Grouped Bulk Replacement View
+        function renderBulkTable() {
+            bulkTableBody.innerHTML = '';
+
+            if (invalidRecords.length === 0) {
+                bulkEmptyState.classList.remove('hidden');
+                return;
+            }
+            bulkEmptyState.classList.add('hidden');
+
+            // Group by currentValue
+            const groups = {};
+            invalidRecords.forEach(rec => {
+                const key = rec.currentValue || "(Vacío / Sin valor)";
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(rec);
+            });
+
+            const sortedKeys = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length);
+
+            sortedKeys.forEach((invalidVal, idx) => {
+                const records = groups[invalidVal];
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-700/30 transition';
+
+                const optionsHtml = VALID_TIPIFICATIONS.map(opt => `<option value="${escapeHtml(opt)}">${escapeHtml(opt)}</option>`).join('');
+
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-medium text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation text-xs"></i>
+                        <span>${escapeHtml(invalidVal)}</span>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
+                            ${records.length} ${records.length === 1 ? 'coincidencia' : 'coincidencias'}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <select id="bulkSelect_${idx}" class="w-full text-xs bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <option value="">-- Seleccionar de la lista oficial --</option>
+                            ${optionsHtml}
+                        </select>
+                    </td>
+                    <td class="py-3 px-4 text-right">
+                        <button onclick="applyBulkReplacement('${escapeJsString(invalidVal)}', 'bulkSelect_${idx}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-xs shadow-sm transition flex items-center gap-1.5 ml-auto">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Reemplazar Lote
+                        </button>
+                    </td>
+                `;
+                bulkTableBody.appendChild(tr);
+            });
+        }
+
+        // Render Individual Rows View
+        function renderRowsTable() {
+            rowsTableBody.innerHTML = '';
+
+            const searchTerm = rowSearchInput.value.toLowerCase().trim();
+            const filtered = invalidRecords.filter(rec => {
+                const rowStr = String(rec.rowNum);
+                const valStr = rec.currentValue.toLowerCase();
+                return rowStr.includes(searchTerm) || valStr.includes(searchTerm);
+            });
+
+            if (filtered.length === 0) {
+                rowsEmptyState.classList.remove('hidden');
+                return;
+            }
+            rowsEmptyState.classList.add('hidden');
+
+            const optionsHtml = VALID_TIPIFICATIONS.map(opt => `<option value="${escapeHtml(opt)}">${escapeHtml(opt)}</option>`).join('');
+
+            filtered.forEach(rec => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-700/30 transition';
+
+                const displayVal = rec.currentValue || "(Vacío)";
+
+                tr.innerHTML = `
+                    <td class="py-3 px-4 text-center font-mono font-bold text-slate-600 dark:text-slate-300">
+                        #${rec.rowNum}
+                    </td>
+                    <td class="py-3 px-4 font-medium text-amber-600 dark:text-amber-400">
+                        ${escapeHtml(displayVal)}
+                    </td>
+                    <td class="py-3 px-4">
+                        <select id="rowSelect_${rec.rowNum}" class="w-full text-xs bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <option value="">-- Seleccionar de la lista oficial --</option>
+                            ${optionsHtml}
+                        </select>
+                    </td>
+                    <td class="py-3 px-4 text-right">
+                        <button onclick="applyRowReplacement('${rec.cellAddress}', ${rec.rowNum}, 'rowSelect_${rec.rowNum}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-xs shadow-sm transition flex items-center gap-1 ml-auto">
+                            <i class="fa-solid fa-floppy-disk"></i> Guardar
+                        </button>
+                    </td>
+                `;
+                rowsTableBody.appendChild(tr);
+            });
+        }
+
+        // Directly modify cell object in worksheet to preserve styles, borders, and metadata
+        function updateCellInSheet(cellAddress, newValue) {
+            pendingEdits[cellAddress] = newValue;
+            const ws = rawWorkbook.Sheets["SicaCenter"];
+            
+            if (!ws[cellAddress]) {
+                // Initialize cell if it was blank while keeping format default string
+                ws[cellAddress] = { t: 's', v: newValue, w: String(newValue) };
+            } else {
+                // Preserve existing formatting properties (s, f, z, etc.) and update value & type
+                ws[cellAddress].v = newValue;
+                ws[cellAddress].t = 's';
+                ws[cellAddress].w = String(newValue);
+            }
+        }
+
+        // Apply Grouped Replacement
+        window.applyBulkReplacement = function(targetValRaw, selectId) {
+            const selectEl = document.getElementById(selectId);
+            const newValue = selectEl.value;
+
+            if (!newValue) {
+                showToast('Por favor elige una tipificación válida del selector.', 'error');
+                return;
+            }
+
+            const isBlankTarget = targetValRaw === "(Vacío / Sin valor)";
+            let updatedCount = 0;
+
+            invalidRecords.forEach(rec => {
+                const matches = isBlankTarget ? rec.currentValue === "" : rec.currentValue === targetValRaw;
+                if (matches) {
+                    updateCellInSheet(rec.cellAddress, newValue);
+                    updatedCount++;
+                }
+            });
+
+            showToast(`Se corrigieron ${updatedCount} celdas en el archivo Excel.`, 'success');
+            parseSicaCenterSheet(); // Refresh UI and recount
+        };
+
+        // Apply Single Row Replacement
+        window.applyRowReplacement = function(cellAddress, rowNum, selectId) {
+            const selectEl = document.getElementById(selectId);
+            const newValue = selectEl.value;
+
+            if (!newValue) {
+                showToast('Por favor elige una tipificación válida del selector.', 'error');
+                return;
+            }
+
+            updateCellInSheet(cellAddress, newValue);
+            showToast(`Fila #${rowNum} corregida exitosamente.`, 'success');
+            parseSicaCenterSheet(); // Refresh UI and recount
+        };
+
+        // ===== EXPORTACIÓN: edita el XML del .xlsx ORIGINAL (conserva 100% diseño y formato) =====
+        function colToNum(letters) {
+            let n = 0;
+            for (let i = 0; i < letters.length; i++) n = n * 26 + (letters.charCodeAt(i) - 64);
+            return n;
+        }
+
+        async function patchOriginalXlsx(buffer, edits) {
+            const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+            const zip = await JSZip.loadAsync(buffer);
+            const parser = new DOMParser();
+            const serializer = new XMLSerializer();
+            const XML_DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+
+            // 1) Localizar el archivo XML de la hoja "SicaCenter"
+            const wbDoc = parser.parseFromString(await zip.file('xl/workbook.xml').async('string'), 'application/xml');
+            const sheetEl = Array.from(wbDoc.getElementsByTagName('sheet')).find(el => el.getAttribute('name') === 'SicaCenter');
+            if (!sheetEl) throw new Error('No se encontró la hoja SicaCenter en el libro.');
+            const rid = sheetEl.getAttribute('r:id') || sheetEl.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
+
+            const relsDoc = parser.parseFromString(await zip.file('xl/_rels/workbook.xml.rels').async('string'), 'application/xml');
+            const rel = Array.from(relsDoc.getElementsByTagName('Relationship')).find(el => el.getAttribute('Id') === rid);
+            if (!rel) throw new Error('No se encontró la relación de la hoja.');
+            let target = rel.getAttribute('Target');
+            const sheetPath = target.startsWith('/') ? target.substring(1) : 'xl/' + target.replace(/^\.\//, '');
+
+            // 2) Modificar solo las celdas editadas
+            const sheetDoc = parser.parseFromString(await zip.file(sheetPath).async('string'), 'application/xml');
+            const sheetData = sheetDoc.getElementsByTagName('sheetData')[0];
+            const rowMap = new Map();
+            Array.from(sheetData.getElementsByTagName('row')).forEach(r => rowMap.set(parseInt(r.getAttribute('r'), 10), r));
+            let removedFormula = false;
+
+            Object.keys(edits).forEach(addr => {
+                const m = addr.match(/^([A-Z]+)(\d+)$/);
+                if (!m) return;
+                const colNum = colToNum(m[1]);
+                const rowNum = parseInt(m[2], 10);
+
+                // fila (crear en orden si no existe)
+                let rowEl = rowMap.get(rowNum);
+                if (!rowEl) {
+                    rowEl = sheetDoc.createElementNS(NS, 'row');
+                    rowEl.setAttribute('r', String(rowNum));
+                    let before = null;
+                    for (const [rn, el] of rowMap) { if (rn > rowNum && (!before || rn < parseInt(before.getAttribute('r'), 10))) before = el; }
+                    sheetData.insertBefore(rowEl, before);
+                    rowMap.set(rowNum, rowEl);
+                }
+
+                // celda (crear en orden si no existe)
+                let cellEl = null, beforeCell = null;
+                Array.from(rowEl.children).forEach(c => {
+                    const cm = (c.getAttribute('r') || '').match(/^([A-Z]+)/);
+                    if (!cm) return;
+                    const cn = colToNum(cm[1]);
+                    if (cn === colNum) cellEl = c;
+                    else if (cn > colNum && !beforeCell) beforeCell = c;
+                });
+                if (!cellEl) {
+                    cellEl = sheetDoc.createElementNS(NS, 'c');
+                    cellEl.setAttribute('r', addr);
+                    // heredar el estilo de la misma columna en una fila vecina, si existe
+                    for (let rr = rowNum - 1; rr >= Math.max(1, rowNum - 50); rr--) {
+                        const prevRow = rowMap.get(rr);
+                        if (!prevRow) continue;
+                        const prevCell = Array.from(prevRow.children).find(c => (c.getAttribute('r') || '') === m[1] + rr);
+                        if (prevCell && prevCell.getAttribute('s')) { cellEl.setAttribute('s', prevCell.getAttribute('s')); break; }
+                    }
+                    rowEl.insertBefore(cellEl, beforeCell);
+                }
+
+                // limpiar contenido anterior, conservando atributo de estilo (s)
+                if (cellEl.getElementsByTagName('f').length) removedFormula = true;
+                while (cellEl.firstChild) cellEl.removeChild(cellEl.firstChild);
+                cellEl.removeAttribute('t');
+                cellEl.removeAttribute('cm');
+                cellEl.removeAttribute('vm');
+
+                // escribir como texto en línea
+                const val = String(edits[addr]);
+                cellEl.setAttribute('t', 'inlineStr');
+                const isEl = sheetDoc.createElementNS(NS, 'is');
+                const tEl = sheetDoc.createElementNS(NS, 't');
+                if (val !== val.trim()) tEl.setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
+                tEl.textContent = val;
+                isEl.appendChild(tEl);
+                cellEl.appendChild(isEl);
+            });
+
+            zip.file(sheetPath, XML_DECL + serializer.serializeToString(sheetDoc).replace(/^<\?xml[^>]*\?>\s*/, ''));
+
+            // 3) Si se reemplazó alguna fórmula, eliminar calcChain para que Excel no marque el archivo como dañado
+            if (removedFormula && zip.file('xl/calcChain.xml')) {
+                zip.remove('xl/calcChain.xml');
+                const ctPath = '[Content_Types].xml';
+                const ct = (await zip.file(ctPath).async('string')).replace(/<Override[^>]*calcChain[^>]*\/>/g, '');
+                zip.file(ctPath, ct);
+                const relsPath = 'xl/_rels/workbook.xml.rels';
+                const rels = (await zip.file(relsPath).async('string')).replace(/<Relationship[^>]*calcChain[^>]*\/>/g, '');
+                zip.file(relsPath, rels);
+            }
+
+            return await zip.generateAsync({
+                type: 'blob',
+                mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                compression: 'DEFLATE'
+            });
+        }
+
+        async function exportExcel() {
+            if (!rawWorkbook || !rawFileBuffer) {
+                showToast('No hay libro cargado para exportar.', 'error');
+                return;
+            }
+
+            try {
+                const dotIdx = originalFileName.lastIndexOf('.');
+                const baseName = dotIdx !== -1 ? originalFileName.substring(0, dotIdx) : originalFileName;
+                const exportFileName = `${baseName}_SicaCenter_Corregido.xlsx`;
+                const ext = dotIdx !== -1 ? originalFileName.substring(dotIdx + 1).toLowerCase() : '';
+
+                if (typeof JSZip === 'undefined') throw new Error('No se pudo cargar la librería JSZip (revisa tu conexión a internet).');
+                if (ext !== 'xlsx' && ext !== 'xlsm') throw new Error('Para conservar el formato original, el archivo debe ser .xlsx o .xlsm.');
+
+                // Se parte del archivo ORIGINAL y solo se cambian las celdas corregidas
+                const blob = await patchOriginalXlsx(rawFileBuffer, pendingEdits);
+
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = exportFileName;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+
+                showToast('¡Excel corregido exportado con el formato original!', 'success');
+
+            } catch (err) {
+                console.error("Export Error Detail:", err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error de exportación',
+                    text: 'Ocurrió una falla al empaquetar el archivo Excel: ' + (err.message || err),
+                    confirmButtonColor: '#10b981'
+                });
+            }
+        }
+
+        function switchTab(tab) {
+            if (tab === 'bulk') {
+                tabBulkBtn.className = 'py-2 border-b-2 border-emerald-600 text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-2';
+                tabRowsBtn.className = 'py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-2';
+                tabBulkView.classList.remove('hidden');
+                tabRowsView.classList.add('hidden');
+            } else {
+                tabRowsBtn.className = 'py-2 border-b-2 border-emerald-600 text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-2';
+                tabBulkBtn.className = 'py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-2';
+                tabRowsView.classList.remove('hidden');
+                tabBulkView.classList.add('hidden');
+            }
+        }
+
+        function resetApp() {
+            rawWorkbook = null;
+            rawFileBuffer = null;
+            pendingEdits = {};
+            invalidRecords = [];
+            excelFileInput.value = '';
+
+            dashboardSection.classList.add('hidden');
+            btnViewList.classList.add('hidden');
+            uploadSection.classList.remove('hidden');
+        }
+
+        function populateModalList() {
+            modalListContainer.innerHTML = '';
+            VALID_TIPIFICATIONS.forEach(tip => {
+                const div = document.createElement('div');
+                div.className = 'p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-xs text-slate-700 dark:text-slate-200 flex items-center justify-between hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition modal-item';
+                div.innerHTML = `
+                    <span>${escapeHtml(tip)}</span>
+                    <i class="fa-solid fa-check text-emerald-500 text-xs"></i>
+                `;
+                modalListContainer.appendChild(div);
+            });
+        }
+
+        function filterModalList() {
+            const query = modalSearch.value.toLowerCase();
+            const items = modalListContainer.querySelectorAll('.modal-item');
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(query)) {
+                    item.classList.remove('hidden');
+                } else {
+                    item.classList.add('hidden');
+                }
+            });
+        }
+
+        function openModal() {
+            validListModal.classList.remove('hidden');
+            setTimeout(() => {
+                validListModal.classList.remove('opacity-0');
+                validListModal.firstElementChild.classList.remove('scale-95');
+                validListModal.firstElementChild.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            validListModal.classList.add('opacity-0');
+            validListModal.firstElementChild.classList.remove('scale-100');
+            validListModal.firstElementChild.classList.add('scale-95');
+            setTimeout(() => {
+                validListModal.classList.add('hidden');
+            }, 200);
+        }
+
+        function showToast(message, type = 'info') {
+            const bgColors = {
+                success: "linear-gradient(to right, #10b981, #059669)",
+                error: "linear-gradient(to right, #ef4444, #dc2626)",
+                info: "linear-gradient(to right, #3b82f6, #2563eb)"
+            };
+
+            Toastify({
+                text: message,
+                duration: 3000,
+                gravity: "top",
+                position: "right",
+                style: {
+                    background: bgColors[type] || bgColors.info,
+                    borderRadius: "8px",
+                    fontSize: "13px",
+                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
+                }
+            }).showToast();
+        }
+
+        function escapeHtml(str) {
+            if (typeof str !== 'string') return str;
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function escapeJsString(str) {
+            return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        }
+    </script>
+</body>
+</html>
